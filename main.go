@@ -12,6 +12,8 @@ import (
 	"github.com/VariableExp0rt/dddexample/listing"
 	"github.com/VariableExp0rt/dddexample/notes"
 	"github.com/VariableExp0rt/dddexample/storage"
+	"github.com/VariableExp0rt/dddexample/updating"
+
 	"github.com/boltdb/bolt"
 	"github.com/gorilla/mux"
 	"github.com/spf13/pflag"
@@ -24,7 +26,7 @@ var (
 )
 
 type Config struct {
-	//some other configuration stuff
+	//some other configuration
 }
 
 type Server struct {
@@ -58,11 +60,11 @@ func NewRouter() *mux.Router {
 	return mux.NewRouter()
 }
 
-func (s *Server) RegisterRoutes(adder adding.Service, lister listing.Service, deleter deleting.Service) {
+func (s *Server) RegisterRoutes(adder adding.Service, lister listing.Service, deleter deleting.Service, updater updating.Service) {
 	s.router.HandleFunc("/notes/{id}", listing.MakeGetNoteEndpoint(lister)).Methods("GET")
 	s.router.HandleFunc("/notes", listing.MakeGetNotesEndpoint(lister)).Methods("GET")
-	s.router.HandleFunc("/notes/{id}", deleting.MakeDeleteNoteEndpoint(deleter)).Methods("POST")
-	//s.router.HandleFunc("/notes/{id}/update", updating.)
+	s.router.HandleFunc("/notes/{id}/delete", deleting.MakeDeleteNoteEndpoint(deleter)).Methods("POST")
+	s.router.HandleFunc("/notes/{id}/update", updating.MakeUpdateNoteEndpoint(updater))
 	s.router.HandleFunc("/notes", adding.MakeAddNoteEndpoint(adder)).Methods("POST")
 }
 
@@ -85,6 +87,7 @@ func main() {
 
 	adder := adding.NewService(noteStorage)
 	lister := listing.NewService(noteStorage)
+	updater := updating.NewService(noteStorage)
 	deleter := deleting.NewService(noteStorage)
 
 	r := NewRouter()
@@ -95,7 +98,7 @@ func main() {
 		router: r,
 	}
 	srv.logger.Info("Registering handler routes with server.")
-	srv.RegisterRoutes(adder, lister, deleter)
+	srv.RegisterRoutes(adder, lister, deleter, updater)
 	srv.logger.Info("Successfully registered handler routes with server")
 
 	ctx, cancel := context.WithCancel(context.TODO())

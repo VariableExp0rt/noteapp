@@ -15,7 +15,6 @@ func MakeAddNoteEndpoint(s Service) http.HandlerFunc {
 
 		if err := decoder.Decode(&note); err != nil {
 			http.Error(w, "Bad note - unable to process request", http.StatusBadRequest)
-			return
 		}
 
 		s.AddNote(note)

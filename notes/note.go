@@ -22,5 +22,5 @@ type Repository interface {
 	Get(ID int) (Note, error)
 	Add(n Note) error
 	Delete(ID int) error
-	Update(n Note) error
+	Update(id int, n Note) error
 }

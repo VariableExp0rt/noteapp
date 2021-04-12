@@ -43,6 +43,8 @@ func (s *BoltStorage) Add(n notes.Note) error {
 		return err
 	}
 
+	n.CreatedTime = time.Now().UTC()
+
 	if buf, err := json.Marshal(n); err != nil {
 		return err
 	} else if err := bkt.Put([]byte(strconv.FormatInt(int64(id), 10)), buf); err != nil {
@@ -60,6 +62,9 @@ func (s *BoltStorage) Get(id int) (notes.Note, error) {
 	n := notes.Note{}
 
 	err := s.DB.View(func(tx *bolt.Tx) error {
+
+		defer tx.Rollback()
+
 		b := tx.Bucket([]byte("NOTES"))
 		v := b.Get([]byte(strconv.FormatInt(int64(id), 10)))
 		if err := json.Unmarshal(v, &n); err != nil {
@@ -78,6 +83,9 @@ func (s *BoltStorage) GetAll() ([]notes.Note, error) {
 	ns := []notes.Note{}
 
 	err := s.DB.View(func(tx *bolt.Tx) error {
+
+		defer tx.Rollback()
+
 		b := tx.Bucket([]byte("NOTES"))
 
 		err := b.ForEach(func(k, v []byte) error {
@@ -113,10 +121,35 @@ func (s *BoltStorage) Delete(id int) error {
 	return nil
 }
 
-func (s *BoltStorage) Update(n notes.Note) error {
-	s.DB.Update(func(tx *bolt.Tx) error {
+func (s *BoltStorage) Update(id int, n notes.Note) error {
+	var err error
+
+	err = s.DB.Update(func(tx *bolt.Tx) error {
+		defer tx.Rollback()
+
+		//logic for updating here
+		bkt := tx.Bucket([]byte("NOTES"))
+		result := bkt.Get([]byte(strconv.Itoa(id)))
+		if result == nil {
+			return notes.ErrNoteNotFound
+		}
+
+		if buf, err := json.Marshal(n); err != nil {
+			return err
+		} else if err := bkt.Put([]byte(strconv.Itoa(id)), buf); err != nil {
+			return err
+		}
+
+		if err := tx.Commit(); err != nil {
+			return err
+		}
+
 		return nil
 	})
+
+	if err != nil {
+		return err
+	}
 
 	return nil
 }
