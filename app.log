@@ -1,0 +1,40 @@
+{"level":"info","ts":1618239911.5057962,"caller":"dddexample/main.go:100","msg":"Registering handler routes with server."}
+{"level":"info","ts":1618239911.507911,"caller":"dddexample/main.go:102","msg":"Successfully registered handler routes with server."}
+{"level":"info","ts":1618239911.508024,"caller":"dddexample/main.go:107","msg":"Running server."}
+{"level":"info","ts":1618239911.508064,"caller":"dddexample/main.go:39","msg":"Server listening on 127.0.0.1:8080."}
+{"level":"info","ts":1618240704.002869,"caller":"dddexample/main.go:100","msg":"Registering handler routes with server."}
+{"level":"info","ts":1618240704.003923,"caller":"dddexample/main.go:102","msg":"Successfully registered handler routes with server."}
+{"level":"info","ts":1618240704.004502,"caller":"dddexample/main.go:107","msg":"Running server."}
+{"level":"info","ts":1618240704.0045419,"caller":"dddexample/main.go:39","msg":"Server listening on 127.0.0.1:8080."}
+{"level":"info","ts":1618241318.501227,"caller":"dddexample/main.go:100","msg":"Registering handler routes with server."}
+{"level":"info","ts":1618241318.5020301,"caller":"dddexample/main.go:102","msg":"Successfully registered handler routes with server."}
+{"level":"info","ts":1618241318.502761,"caller":"dddexample/main.go:107","msg":"Running server."}
+{"level":"info","ts":1618241318.5028238,"caller":"dddexample/main.go:39","msg":"Server listening on 127.0.0.1:8080."}
+{"level":"info","ts":1618241487.0064409,"caller":"dddexample/main.go:100","msg":"Registering handler routes with server."}
+{"level":"info","ts":1618241487.006779,"caller":"dddexample/main.go:102","msg":"Successfully registered handler routes with server."}
+{"level":"info","ts":1618241487.006886,"caller":"dddexample/main.go:107","msg":"Running server."}
+{"level":"info","ts":1618241487.008001,"caller":"dddexample/main.go:39","msg":"Server listening on 127.0.0.1:8080."}
+{"level":"info","ts":1618243385.00243,"caller":"dddexample/main.go:100","msg":"Registering handler routes with server."}
+{"level":"info","ts":1618243385.003623,"caller":"dddexample/main.go:102","msg":"Successfully registered handler routes with server."}
+{"level":"info","ts":1618243385.004947,"caller":"dddexample/main.go:107","msg":"Running server."}
+{"level":"info","ts":1618243385.005014,"caller":"dddexample/main.go:39","msg":"Server listening on 127.0.0.1:8080."}
+{"level":"info","ts":1618243506.0829911,"caller":"dddexample/main.go:100","msg":"Registering handler routes with server."}
+{"level":"info","ts":1618243506.0836759,"caller":"dddexample/main.go:102","msg":"Successfully registered handler routes with server."}
+{"level":"info","ts":1618243506.0846112,"caller":"dddexample/main.go:107","msg":"Running server."}
+{"level":"info","ts":1618243506.0847108,"caller":"dddexample/main.go:39","msg":"Server listening on 127.0.0.1:8080."}
+{"level":"info","ts":1618244678.0705721,"caller":"dddexample/main.go:100","msg":"Registering handler routes with server."}
+{"level":"info","ts":1618244678.071538,"caller":"dddexample/main.go:102","msg":"Successfully registered handler routes with server."}
+{"level":"info","ts":1618244678.0724878,"caller":"dddexample/main.go:107","msg":"Running server."}
+{"level":"info","ts":1618244678.0725691,"caller":"dddexample/main.go:39","msg":"Server listening on 127.0.0.1:8080."}
+{"level":"info","ts":1618244820.477004,"caller":"dddexample/main.go:100","msg":"Registering handler routes with server."}
+{"level":"info","ts":1618244820.477694,"caller":"dddexample/main.go:102","msg":"Successfully registered handler routes with server."}
+{"level":"info","ts":1618244820.4792268,"caller":"dddexample/main.go:107","msg":"Running server."}
+{"level":"info","ts":1618244820.479294,"caller":"dddexample/main.go:39","msg":"Server listening on 127.0.0.1:8080."}
+{"level":"info","ts":1618245071.252047,"caller":"dddexample/main.go:100","msg":"Registering handler routes with server."}
+{"level":"info","ts":1618245071.2523541,"caller":"dddexample/main.go:102","msg":"Successfully registered handler routes with server."}
+{"level":"info","ts":1618245071.252427,"caller":"dddexample/main.go:107","msg":"Running server."}
+{"level":"info","ts":1618245071.2524722,"caller":"dddexample/main.go:39","msg":"Server listening on 127.0.0.1:8080."}
+{"level":"info","ts":1618248833.6044102,"caller":"dddexample/main.go:100","msg":"Registering handler routes with server."}
+{"level":"info","ts":1618248833.605155,"caller":"dddexample/main.go:102","msg":"Successfully registered handler routes with server."}
+{"level":"info","ts":1618248833.605705,"caller":"dddexample/main.go:107","msg":"Running server."}
+{"level":"info","ts":1618248833.6057642,"caller":"dddexample/main.go:39","msg":"Server listening on 127.0.0.1:8080."}

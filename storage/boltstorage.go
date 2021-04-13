@@ -1,17 +1,27 @@
 package storage
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
-	"strconv"
+	"math/rand"
 	"time"
 
 	"github.com/VariableExp0rt/dddexample/notes"
 	"github.com/boltdb/bolt"
+	hash "github.com/mitchellh/hashstructure/v2"
 )
 
 type BoltStorage struct {
 	DB *bolt.DB
+}
+
+func IDGenerator() int {
+
+	s := rand.NewSource(time.Now().UnixNano())
+	r := rand.New(s)
+
+	return r.Intn(100000)
 }
 
 //Move this to main
@@ -38,16 +48,21 @@ func (s *BoltStorage) Add(n notes.Note) error {
 		return err
 	}
 
-	id, err := bkt.NextSequence()
+	//use this package instead to make a hashmap as the key it is stored as, based on the ID
+	//https://github.com/mitchellh/hashstructure
+	//below in the Get/GetAll/Delete/Update, we can use the given ID, hash it with this package
+	//then call a bkt.Get() to find the hash within the key
+	n.ID = IDGenerator()
+	n.CreatedTime = time.Now().UTC()
+
+	h, err := hash.Hash(n.ID, hash.FormatV2, nil)
 	if err != nil {
 		return err
 	}
 
-	n.CreatedTime = time.Now().UTC()
-
 	if buf, err := json.Marshal(n); err != nil {
 		return err
-	} else if err := bkt.Put([]byte(strconv.FormatInt(int64(id), 10)), buf); err != nil {
+	} else if err := bkt.Put([]byte(fmt.Sprint(h)), buf); err != nil {
 		return err
 	}
 
@@ -59,17 +74,25 @@ func (s *BoltStorage) Add(n notes.Note) error {
 }
 
 func (s *BoltStorage) Get(id int) (notes.Note, error) {
-	n := notes.Note{}
+	var n notes.Note
 
 	err := s.DB.View(func(tx *bolt.Tx) error {
 
-		defer tx.Rollback()
-
-		b := tx.Bucket([]byte("NOTES"))
-		v := b.Get([]byte(strconv.FormatInt(int64(id), 10)))
-		if err := json.Unmarshal(v, &n); err != nil {
+		h, err := hash.Hash(id, hash.FormatV2, nil)
+		if err != nil {
 			return err
 		}
+
+		b := tx.Bucket([]byte("NOTES"))
+		result := b.Get([]byte(fmt.Sprint(h)))
+		if result == nil {
+			return notes.ErrNoteNotFound
+		}
+
+		if err := json.Unmarshal(result, &n); err != nil {
+			return err
+		}
+
 		return nil
 	})
 	if err != nil {
@@ -83,8 +106,6 @@ func (s *BoltStorage) GetAll() ([]notes.Note, error) {
 	ns := []notes.Note{}
 
 	err := s.DB.View(func(tx *bolt.Tx) error {
-
-		defer tx.Rollback()
 
 		b := tx.Bucket([]byte("NOTES"))
 
@@ -125,22 +146,30 @@ func (s *BoltStorage) Update(id int, n notes.Note) error {
 	var err error
 
 	err = s.DB.Update(func(tx *bolt.Tx) error {
-		defer tx.Rollback()
 
 		//logic for updating here
 		bkt := tx.Bucket([]byte("NOTES"))
-		result := bkt.Get([]byte(strconv.Itoa(id)))
-		if result == nil {
-			return notes.ErrNoteNotFound
-		}
 
-		if buf, err := json.Marshal(n); err != nil {
-			return err
-		} else if err := bkt.Put([]byte(strconv.Itoa(id)), buf); err != nil {
-			return err
-		}
+		if err := bkt.ForEach(func(k, v []byte) error {
+			var note notes.Note
 
-		if err := tx.Commit(); err != nil {
+			if err := json.NewDecoder(bytes.NewReader(v)).Decode(&note); err != nil {
+				return err
+			}
+
+			if note.ID == id {
+				n.ID = note.ID
+				n.CreatedTime = note.CreatedTime
+				if buf, err := json.Marshal(n); err != nil {
+					return err
+				} else if err := bkt.Put(k, buf); err != nil {
+					return err
+				}
+			}
+
+			return nil
+
+		}); err != nil {
 			return err
 		}
 

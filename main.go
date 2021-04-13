@@ -99,7 +99,7 @@ func main() {
 	}
 	srv.logger.Info("Registering handler routes with server.")
 	srv.RegisterRoutes(adder, lister, deleter, updater)
-	srv.logger.Info("Successfully registered handler routes with server")
+	srv.logger.Info("Successfully registered handler routes with server.")
 
 	ctx, cancel := context.WithCancel(context.TODO())
 	go func() {
