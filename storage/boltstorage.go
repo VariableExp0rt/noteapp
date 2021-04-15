@@ -7,6 +7,7 @@ import (
 	"math/rand"
 	"time"
 
+	"github.com/VariableExp0rt/dddexample/auth"
 	"github.com/VariableExp0rt/dddexample/notes"
 	"github.com/boltdb/bolt"
 	hash "github.com/mitchellh/hashstructure/v2"
@@ -135,9 +136,23 @@ func (s *BoltStorage) GetAll() ([]notes.Note, error) {
 }
 
 func (s *BoltStorage) Delete(id int) error {
-	s.DB.Update(func(tx *bolt.Tx) error {
+	err := s.DB.Update(func(tx *bolt.Tx) error {
+
+		bkt := tx.Bucket([]byte("NOTES"))
+
+		h, err := hash.Hash(id, hash.FormatV2, nil)
+		if err != nil {
+			return err
+		}
+
+		if err := bkt.Delete([]byte(fmt.Sprint(h))); err != nil {
+			return err
+		}
 		return nil
 	})
+	if err != nil {
+		return err
+	}
 
 	return nil
 }
@@ -180,5 +195,43 @@ func (s *BoltStorage) Update(id int, n notes.Note) error {
 		return err
 	}
 
+	return nil
+}
+
+func (s *BoltStorage) Validate(username, password string) error {
+
+	//take username and password and compare to stored values
+	//if match, return no err and the handler creates token
+	if err := s.DB.View(func(tx *bolt.Tx) error {
+		bkt, err := tx.CreateBucketIfNotExists([]byte("USERS"))
+		if err != nil {
+			return err
+		}
+		cur := bkt.Cursor()
+
+		var u auth.User
+
+		for {
+			_, v := cur.Next()
+			if err := json.Unmarshal(v, &u); err != nil {
+				return err
+			}
+			if username == u.Username && password == u.Password {
+				return nil
+			} else if username != u.Username && password != u.Password || username == u.Username && password != u.Password {
+				break
+			}
+			return auth.ErrUserNotFound
+		}
+
+		return nil
+	}); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (s *BoltStorage) Store(auth.User) error {
 	return nil
 }

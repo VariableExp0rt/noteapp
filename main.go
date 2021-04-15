@@ -8,8 +8,10 @@ import (
 	"time"
 
 	"github.com/VariableExp0rt/dddexample/adding"
+	"github.com/VariableExp0rt/dddexample/auth"
 	"github.com/VariableExp0rt/dddexample/deleting"
 	"github.com/VariableExp0rt/dddexample/listing"
+	"github.com/VariableExp0rt/dddexample/middleware"
 	"github.com/VariableExp0rt/dddexample/notes"
 	"github.com/VariableExp0rt/dddexample/storage"
 	"github.com/VariableExp0rt/dddexample/updating"
@@ -36,8 +38,9 @@ type Server struct {
 }
 
 func (s *Server) Run() {
-	s.logger.Info("Server listening on 127.0.0.1:8080.")
-	s.logger.Fatal(http.ListenAndServe(":8080", s.router))
+
+	log.Fatal(http.ListenAndServe(":8080", s.router))
+
 }
 
 func NewLogger() *zap.SugaredLogger {
@@ -60,8 +63,11 @@ func NewRouter() *mux.Router {
 	return mux.NewRouter()
 }
 
-func (s *Server) RegisterRoutes(adder adding.Service, lister listing.Service, deleter deleting.Service, updater updating.Service) {
-	s.router.HandleFunc("/notes/{id}", listing.MakeGetNoteEndpoint(lister)).Methods("GET")
+func (s *Server) RegisterRoutes(adder adding.Service, lister listing.Service, deleter deleting.Service, updater updating.Service, authep auth.Service) {
+
+	//wrap all routes in AuthMiddleware, except login
+	s.router.HandleFunc("/login", auth.MakeUserLoginEndpoint(authep))
+	s.router.HandleFunc("/notes/{id}", middleware.LoggingMiddleware(listing.MakeGetNoteEndpoint(lister))).Methods("GET")
 	s.router.HandleFunc("/notes", listing.MakeGetNotesEndpoint(lister)).Methods("GET")
 	s.router.HandleFunc("/notes/{id}/delete", deleting.MakeDeleteNoteEndpoint(deleter)).Methods("POST")
 	s.router.HandleFunc("/notes/{id}/update", updating.MakeUpdateNoteEndpoint(updater))
@@ -72,6 +78,8 @@ func main() {
 
 	//Other flags
 	pflag.String("db", "/tmp/my.db", "Supply a path for Bolt to open the database.")
+	pflag.StringVar(&auth.Privkey, "privateKey", "", "Supply private key for signing JWT.")
+	pflag.StringVar(&auth.Pubkey, "publicKey", "", "Supply public key for signing JWT.")
 	pflag.Parse()
 	viper.BindPFlags(pflag.CommandLine)
 
@@ -83,12 +91,15 @@ func main() {
 	defer store.Close()
 
 	var noteStorage notes.Repository
+	var userStorage auth.Repository
 	noteStorage = &storage.BoltStorage{DB: store}
+	userStorage = &storage.BoltStorage{DB: store}
 
 	adder := adding.NewService(noteStorage)
 	lister := listing.NewService(noteStorage)
 	updater := updating.NewService(noteStorage)
 	deleter := deleting.NewService(noteStorage)
+	ath := auth.NewService(userStorage)
 
 	r := NewRouter()
 
@@ -97,9 +108,14 @@ func main() {
 		logger: NewLogger(),
 		router: r,
 	}
-	srv.logger.Info("Registering handler routes with server.")
-	srv.RegisterRoutes(adder, lister, deleter, updater)
-	srv.logger.Info("Successfully registered handler routes with server.")
+
+	srv.RegisterRoutes(
+		adder,
+		lister,
+		deleter,
+		updater,
+		ath,
+	)
 
 	ctx, cancel := context.WithCancel(context.TODO())
 	go func() {
@@ -109,5 +125,4 @@ func main() {
 	}()
 
 	<-ctx.Done()
-	srv.logger.Info("Received stop signal. Exiting.")
 }
