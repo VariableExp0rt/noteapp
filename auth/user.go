@@ -3,17 +3,21 @@ package auth
 import "errors"
 
 var (
-	ErrUserNotFound = errors.New("Invalid username and/or password.")
+	ErrUserNotFound            = errors.New("Invalid username and/or password.")
+	ErrInvalidPasswordCriteria = errors.New("Password does not meet complexity criteria.")
 )
 
-type User struct {
-	ID           int
-	Username     string
-	Password     string
-	EmailAddress string
+type UserLoginReq struct {
+	Username string
+	Password string
 }
 
+type UserSignUpReq struct {
+	Username        string
+	NewPassword     string
+	ConfirmPassword string
+}
 type Repository interface {
-	Validate(username, password string) error
-	Store(User) error
+	ValidateUser(username, password string) error
+	StoreNewUser(UserSignUpReq) error
 }

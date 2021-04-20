@@ -1,22 +1,18 @@
 package auth
 
 import (
+	"crypto/rand"
 	"crypto/rsa"
 	"encoding/json"
-	"io/ioutil"
 	"log"
-	"net/http"
-	"sync"
 	"time"
+
+	"net/http"
 
 	jwt "github.com/dgrijalva/jwt-go"
 )
 
 var (
-	TokenMap  = make(map[string]string)
-	mu        = &sync.Mutex{}
-	Privkey   string
-	Pubkey    string
 	SignKey   *rsa.PrivateKey
 	VerifyKey *rsa.PublicKey
 )
@@ -31,22 +27,32 @@ type CustomClaimExample struct {
 	UserInfo
 }
 
+func init() {
+	err := MakeRSAPrivateKey()
+	if err != nil {
+		log.Fatal("Unable to generate signing key pair.")
+	}
+}
+
 func MakeUserLoginEndpoint(s Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		var u User
+		var u UserLoginReq
 		if err := json.NewDecoder(r.Body).Decode(&u); err != nil {
 			http.Error(w, "Invalid user info.", http.StatusBadRequest)
+			return
 		}
 
 		err := s.ValidateUser(u.Username, u.Password)
 		if err != nil {
-			http.Error(w, err.Error()+" Sign-up or enter valid credentials.", http.StatusUnauthorized)
+			http.Error(w, err.Error(), http.StatusUnauthorized)
+			return
 		}
 
 		//create token
 		token, err := createToken(u.Username)
-		if err != nil {
-			http.Error(w, "Error in auth flow: "+err.Error(), http.StatusInternalServerError)
+		if err != nil || token == "" {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
 		}
 
 		//return token to user
@@ -56,39 +62,45 @@ func MakeUserLoginEndpoint(s Service) http.HandlerFunc {
 	}
 }
 
-func createToken(user string) (string, error) {
-	t := jwt.New(jwt.GetSigningMethod("RSA256"))
+func MakeUserSignUpEndpoint(s Service) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
 
-	t.Claims = &CustomClaimExample{
-		&jwt.StandardClaims{
-			ExpiresAt: time.Now().Add(time.Hour * 1).Unix(),
-		},
-		"test",
-		UserInfo{Username: user},
+		//Store credentials
+		var usr UserSignUpReq
+		if err := json.NewDecoder(r.Body).Decode(&usr); err != nil {
+			http.Error(w, "Invalid sign-up request parameters.", http.StatusBadRequest)
+			return
+		}
+
+		if err := s.StoreNewUser(usr); err != nil {
+			http.Error(w, "Error signing up user."+err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		//callback to an account page?
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte("Successfully signed up new user."))
+
+	}
+}
+
+func createToken(user string) (string, error) {
+	t := jwt.New(jwt.GetSigningMethod("RS256"))
+
+	t.Claims = &jwt.StandardClaims{
+		ExpiresAt: time.Now().Add(time.Minute * 5).Unix(),
+		Id:        user,
 	}
 
 	return t.SignedString(SignKey)
 }
 
-func init() {
-	signBytes, err := ioutil.ReadFile(Privkey)
+func MakeRSAPrivateKey() error {
+	var err error
+	SignKey, err = rsa.GenerateKey(rand.Reader, 2048)
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
-
-	SignKey, err = jwt.ParseRSAPrivateKeyFromPEM(signBytes)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	verifyBytes, err := ioutil.ReadFile(Pubkey)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	VerifyKey, err = jwt.ParseRSAPublicKeyFromPEM(verifyBytes)
-	if err != nil {
-		log.Fatal(err)
-	}
-
+	VerifyKey = &SignKey.PublicKey
+	return nil
 }

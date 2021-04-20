@@ -3,6 +3,7 @@ package storage
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"math/rand"
 	"time"
@@ -198,33 +199,43 @@ func (s *BoltStorage) Update(id int, n notes.Note) error {
 	return nil
 }
 
-func (s *BoltStorage) Validate(username, password string) error {
+func (s *BoltStorage) ValidateUser(username, password string) error {
 
 	//take username and password and compare to stored values
 	//if match, return no err and the handler creates token
 	if err := s.DB.View(func(tx *bolt.Tx) error {
-		bkt, err := tx.CreateBucketIfNotExists([]byte("USERS"))
-		if err != nil {
-			return err
-		}
+
+		bkt := tx.Bucket([]byte("USERS"))
 		cur := bkt.Cursor()
 
-		var u auth.User
+		for k, v := cur.First(); k != nil; k, v = cur.Next() {
+			var user string
+			var pass string
 
-		for {
-			_, v := cur.Next()
-			if err := json.Unmarshal(v, &u); err != nil {
-				return err
+			user = string(k)
+
+			if user == username {
+				pass = string(v)
+
+				if username == user && password != pass {
+					return errors.New("Unauthorized, invalid username and/or password.")
+				}
+
+				if username != user && password != pass {
+					return errors.New("Unauthorized, invalid username and/or password.")
+				}
+
+				if username != user && password == pass {
+					return errors.New("Unauthorized, invalid username and/or password.")
+				}
+
+				if username == user && password == pass {
+					return nil
+				}
 			}
-			if username == u.Username && password == u.Password {
-				return nil
-			} else if username != u.Username && password != u.Password || username == u.Username && password != u.Password {
-				break
-			}
-			return auth.ErrUserNotFound
 		}
 
-		return nil
+		return auth.ErrUserNotFound
 	}); err != nil {
 		return err
 	}
@@ -232,6 +243,50 @@ func (s *BoltStorage) Validate(username, password string) error {
 	return nil
 }
 
-func (s *BoltStorage) Store(auth.User) error {
+func (s *BoltStorage) StoreNewUser(signup auth.UserSignUpReq) error {
+
+	//check password matches confirmed password
+	if signup.NewPassword != signup.ConfirmPassword {
+		return errors.New("New password and confirmed password must match.")
+	}
+
+	if err := s.DB.Update(func(tx *bolt.Tx) error {
+		_, err := tx.CreateBucketIfNotExists([]byte("USERS"))
+		if err != nil {
+			return err
+		}
+		return nil
+	}); err != nil {
+		return err
+	}
+
+	//check username is not already registered
+	err := s.DB.View(func(tx *bolt.Tx) error {
+
+		bkt := tx.Bucket([]byte("USERS"))
+		//replace with cursor as to not retrieve the password in 'result' in memory
+		result := bkt.Get([]byte(signup.Username))
+		if result != nil {
+			return errors.New("Username not available, please choose another or login.")
+		}
+		return nil
+	})
+	if err != nil {
+		return err
+	}
+
+	//Store it within a new write transaction, to avoid giving the username checking function above
+	//permissions to amend database too
+	if err := s.DB.Update(func(tx *bolt.Tx) error {
+
+		bkt := tx.Bucket([]byte("USERS"))
+		if err := bkt.Put([]byte(signup.Username), []byte(signup.NewPassword)); err != nil {
+			return err
+		}
+		return nil
+	}); err != nil {
+		return err
+	}
+
 	return nil
 }

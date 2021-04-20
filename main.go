@@ -59,27 +59,22 @@ func NewLogger() *zap.SugaredLogger {
 	return suggar
 }
 
-func NewRouter() *mux.Router {
-	return mux.NewRouter()
-}
-
 func (s *Server) RegisterRoutes(adder adding.Service, lister listing.Service, deleter deleting.Service, updater updating.Service, authep auth.Service) {
 
 	//wrap all routes in AuthMiddleware, except login
-	s.router.HandleFunc("/login", auth.MakeUserLoginEndpoint(authep))
-	s.router.HandleFunc("/notes/{id}", middleware.LoggingMiddleware(listing.MakeGetNoteEndpoint(lister))).Methods("GET")
-	s.router.HandleFunc("/notes", listing.MakeGetNotesEndpoint(lister)).Methods("GET")
-	s.router.HandleFunc("/notes/{id}/delete", deleting.MakeDeleteNoteEndpoint(deleter)).Methods("POST")
-	s.router.HandleFunc("/notes/{id}/update", updating.MakeUpdateNoteEndpoint(updater))
-	s.router.HandleFunc("/notes", adding.MakeAddNoteEndpoint(adder)).Methods("POST")
+	s.router.HandleFunc("/login", auth.MakeUserLoginEndpoint(authep)).Methods("POST")
+	s.router.HandleFunc("/signup", auth.MakeUserSignUpEndpoint(authep)).Methods("POST")
+	s.router.HandleFunc("/notes/{id}", middleware.AuthMiddleware(listing.MakeGetNoteEndpoint(lister))).Methods("GET")
+	s.router.HandleFunc("/notes", middleware.AuthMiddleware(listing.MakeGetNotesEndpoint(lister))).Methods("GET")
+	s.router.HandleFunc("/notes/{id}/delete", middleware.AuthMiddleware(deleting.MakeDeleteNoteEndpoint(deleter))).Methods("POST")
+	s.router.HandleFunc("/notes/{id}/update", middleware.AuthMiddleware(updating.MakeUpdateNoteEndpoint(updater))).Methods("POST")
+	s.router.HandleFunc("/notes", middleware.AuthMiddleware(adding.MakeAddNoteEndpoint(adder))).Methods("POST")
 }
 
 func main() {
 
 	//Other flags
 	pflag.String("db", "/tmp/my.db", "Supply a path for Bolt to open the database.")
-	pflag.StringVar(&auth.Privkey, "privateKey", "", "Supply private key for signing JWT.")
-	pflag.StringVar(&auth.Pubkey, "publicKey", "", "Supply public key for signing JWT.")
 	pflag.Parse()
 	viper.BindPFlags(pflag.CommandLine)
 
@@ -92,6 +87,7 @@ func main() {
 
 	var noteStorage notes.Repository
 	var userStorage auth.Repository
+
 	noteStorage = &storage.BoltStorage{DB: store}
 	userStorage = &storage.BoltStorage{DB: store}
 
@@ -101,7 +97,7 @@ func main() {
 	deleter := deleting.NewService(noteStorage)
 	ath := auth.NewService(userStorage)
 
-	r := NewRouter()
+	r := mux.NewRouter()
 
 	srv := Server{
 		config: &Config{},
@@ -120,7 +116,6 @@ func main() {
 	ctx, cancel := context.WithCancel(context.TODO())
 	go func() {
 		defer cancel()
-		srv.logger.Info("Running server.")
 		srv.Run()
 	}()
 
