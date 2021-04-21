@@ -13,6 +13,7 @@ import (
 
 var (
 	ErrInvalidSigningAlg = errors.New("Invalid signing algorithm for JWT.")
+	ErrMissingClaims     = errors.New("JWT does not contain correct claims for authentication.")
 )
 
 func LoggingMiddleware(next http.HandlerFunc) http.HandlerFunc {
@@ -31,12 +32,9 @@ func AuthMiddleware(next http.HandlerFunc) http.HandlerFunc {
 		//return error, must login to proceed
 		token, err := request.ParseFromRequest(r, request.AuthorizationHeaderExtractor, func(token *jwt.Token) (interface{}, error) { return auth.VerifyKey, nil })
 		if err != nil {
-			http.Error(w, request.ErrNoTokenInRequest.Error()+" Please authenticate to obtain token.", http.StatusUnauthorized)
+			http.Error(w, request.ErrNoTokenInRequest.Error()+". Please authenticate to obtain token.", http.StatusUnauthorized)
 			return
 		}
-
-		//TODO: Need to save the metadata of the JWT on login, and verify it here by retrieving the K/V pairs
-		//this needs to be done in boltstorage and a helper function in auth service
 
 		if token.Method.Alg() != "RS256" {
 			http.Error(w, ErrInvalidSigningAlg.Error(), http.StatusBadRequest)
@@ -45,6 +43,28 @@ func AuthMiddleware(next http.HandlerFunc) http.HandlerFunc {
 
 		if ok := token.Valid; !ok {
 			http.Error(w, "Invalid bearer token.", http.StatusForbidden)
+			return
+		}
+
+		//TODO: Need to save the metadata of the JWT on login, and verify it here by retrieving the K/V pairs
+		//this needs to be done in boltstorage and a helper function in auth service
+		claims, ok := token.Claims.(jwt.MapClaims)
+		if !ok {
+			http.Error(w, ErrMissingClaims.Error(), http.StatusBadRequest)
+			return
+		}
+
+		access_uuid := claims["access_uuid"].(string)
+		uid := claims["username"].(string)
+
+		userID, ok := auth.TokenMap[access_uuid]
+		if !ok {
+			http.Error(w, "Unprocessable claim.", http.StatusUnprocessableEntity)
+			return
+		}
+
+		if userID != uid {
+			http.Error(w, "Unauthorised, invalid token.", http.StatusUnauthorized)
 			return
 		}
 

@@ -14,7 +14,8 @@ func MakeAddNoteEndpoint(s Service) http.HandlerFunc {
 		var note notes.Note
 
 		if err := decoder.Decode(&note); err != nil {
-			http.Error(w, "Bad note - unable to process request", http.StatusBadRequest)
+			http.Error(w, "Note malformed. Unable to process request.", http.StatusBadRequest)
+			return
 		}
 
 		s.AddNote(note)

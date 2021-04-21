@@ -2,7 +2,6 @@ package deleting
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"strconv"
 
@@ -13,12 +12,17 @@ func MakeDeleteNoteEndpoint(s Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		vars := mux.Vars(r)
 
-		id, err := strconv.Atoi(vars["ID"])
+		id, err := strconv.Atoi(vars["id"])
 		if err != nil {
-			fmt.Printf("Unable to parse note ID: %v", err)
+			http.Error(w, "Unable to parse note ID: %v", http.StatusBadRequest)
+			return
 		}
 
-		s.DeleteNote(id)
+		//return error from delete note
+		if err := s.DeleteNote(id); err != nil {
+			http.Error(w, "Unable to delete note.", http.StatusInternalServerError)
+			return
+		}
 		//handle error
 
 		w.Header().Set("Content-Type", "application/json")

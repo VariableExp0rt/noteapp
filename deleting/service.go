@@ -1,13 +1,11 @@
 package deleting
 
 import (
-	"fmt"
-
 	"github.com/VariableExp0rt/dddexample/notes"
 )
 
 type Service interface {
-	DeleteNote(int)
+	DeleteNote(int) error
 }
 
 type service struct {
@@ -18,9 +16,9 @@ func NewService(nR notes.Repository) Service {
 	return &service{nR}
 }
 
-func (s *service) DeleteNote(id int) {
+func (s *service) DeleteNote(id int) error {
 	if err := s.nR.Delete(id); err != nil {
-		fmt.Printf("Error deleting note with ID %v: %v", id, err)
-		return
+		return err
 	}
+	return nil
 }

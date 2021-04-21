@@ -15,16 +15,19 @@ func MakeUpdateNoteEndpoint(s Service) http.HandlerFunc {
 		id, err := strconv.Atoi(vars["id"])
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
 		}
 
 		var n notes.Note
 
 		if err := json.NewDecoder(r.Body).Decode(&n); err != nil {
 			http.Error(w, "Invalid note.", http.StatusBadRequest)
+			return
 		}
 
 		if err := s.Update(id, n); err != nil {
 			http.Error(w, "Failed to update note.", http.StatusInternalServerError)
+			return
 		}
 
 		w.Header().Set("Content-Type", "application/json")

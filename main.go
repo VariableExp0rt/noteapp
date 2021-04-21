@@ -5,6 +5,8 @@ import (
 	"context"
 	"log"
 	"net/http"
+	"os"
+	"os/signal"
 	"time"
 
 	"github.com/VariableExp0rt/dddexample/adding"
@@ -38,9 +40,13 @@ type Server struct {
 }
 
 func (s *Server) Run() {
-
 	log.Fatal(http.ListenAndServe(":8080", s.router))
+	log.Print("Server listening on http://localhost:8080.")
+}
 
+func (s *Server) Shutdown(ctx context.Context) {
+	s.Shutdown(ctx)
+	log.Print("Server shutting down.")
 }
 
 func NewLogger() *zap.SugaredLogger {
@@ -113,11 +119,18 @@ func main() {
 		ath,
 	)
 
-	ctx, cancel := context.WithCancel(context.TODO())
 	go func() {
-		defer cancel()
 		srv.Run()
 	}()
 
-	<-ctx.Done()
+	c := make(chan os.Signal, 1)
+	signal.Notify(c, os.Interrupt)
+
+	<-c
+
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*15)
+	defer cancel()
+
+	srv.Shutdown(ctx)
+	os.Exit(0)
 }

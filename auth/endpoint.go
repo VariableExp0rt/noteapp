@@ -10,11 +10,13 @@ import (
 	"net/http"
 
 	jwt "github.com/dgrijalva/jwt-go"
+	"github.com/google/uuid"
 )
 
 var (
 	SignKey   *rsa.PrivateKey
 	VerifyKey *rsa.PublicKey
+	TokenMap  = make(map[string]string)
 )
 
 type UserInfo struct {
@@ -85,12 +87,18 @@ func MakeUserSignUpEndpoint(s Service) http.HandlerFunc {
 }
 
 func createToken(user string) (string, error) {
-	t := jwt.New(jwt.GetSigningMethod("RS256"))
 
-	t.Claims = &jwt.StandardClaims{
-		ExpiresAt: time.Now().Add(time.Minute * 5).Unix(),
-		Id:        user,
-	}
+	uid := uuid.New()
+
+	tclaims := jwt.MapClaims{}
+	tclaims["username"] = user
+	tclaims["exp"] = time.Now().Add(time.Minute * 5).Unix()
+	tclaims["authorized"] = true
+	tclaims["access_uuid"] = uid
+
+	TokenMap[uid.String()] = user
+
+	t := jwt.NewWithClaims(jwt.SigningMethodRS256, tclaims)
 
 	return t.SignedString(SignKey)
 }
