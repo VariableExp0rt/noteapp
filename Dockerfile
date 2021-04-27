@@ -10,4 +10,4 @@ FROM alpine
 COPY --from=build /bin/notes /bin/notes
 COPY --from=build /etc/passwd /etc/passwd
 USER usr
-ENTRYPOINT [ "/bin/notes" ]
+CMD [ "/bin/notes", "--port \":8081\"" ]
