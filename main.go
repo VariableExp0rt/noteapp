@@ -38,8 +38,8 @@ type Server struct {
 }
 
 func (s *Server) Run() {
-	log.Fatal(http.ListenAndServe(":8080", s.router))
-	log.Print("Server listening on http://localhost:8080.")
+	log.Fatal(http.ListenAndServe(viper.GetString("port"), s.router))
+	log.Print("Server listening on http://localhost" + viper.GetString("port"))
 }
 
 func NewLogger() *zap.SugaredLogger {
@@ -74,6 +74,7 @@ func main() {
 
 	//Other flags
 	pflag.String("db", "/tmp/my.db", "Supply a path for Bolt to open the database.")
+	pflag.String("port", ":8080", "Port for web server to listen on.")
 	pflag.Parse()
 	viper.BindPFlags(pflag.CommandLine)
 

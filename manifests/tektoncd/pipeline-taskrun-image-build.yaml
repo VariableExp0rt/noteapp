@@ -1,0 +1,26 @@
+apiVersion: tekton.dev/v1beta1
+kind: TaskRun
+metadata:
+  creationTimestamp: null
+  generateName: build-docker-image-from-git-source-run-
+  namespace: default
+spec:
+  params:
+  - name: pathToContext
+    value: $(resources.inputs.docker-source.path)
+  - name: pathToDockerFile
+    value: $(resources.inputs.docker-source.path)/Dockerfile
+  resources:
+    inputs:
+    - name: docker-source
+      resourceRef:
+        name: noteapp-git
+    outputs:
+    - name: builtImage
+      resourceRef:
+        name: noteapp-image
+  serviceAccountName: ""
+  taskRef:
+    name: build-docker-image-from-git-source
+status:
+  podName: ""
