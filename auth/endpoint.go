@@ -91,7 +91,7 @@ func createToken(user string) (string, error) {
 	uid := uuid.New()
 
 	tclaims := jwt.MapClaims{}
-	tclaims["username"] = user
+	tclaims["user_id"] = user
 	tclaims["exp"] = time.Now().Add(time.Minute * 5).Unix()
 	tclaims["authorized"] = true
 	tclaims["access_uuid"] = uid

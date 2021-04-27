@@ -2,10 +2,11 @@ package storage
 
 import (
 	"bytes"
+	crand "crypto/rand"
 	"encoding/json"
 	"errors"
 	"fmt"
-	"math/rand"
+	"math/big"
 	"time"
 
 	"github.com/VariableExp0rt/dddexample/auth"
@@ -18,12 +19,14 @@ type BoltStorage struct {
 	DB *bolt.DB
 }
 
-func IDGenerator() int {
+func IDGenerator() (int, error) {
 
-	s := rand.NewSource(time.Now().UnixNano())
-	r := rand.New(s)
+	rndm, err := crand.Int(crand.Reader, big.NewInt(100000))
+	if err != nil {
+		return 0, err
+	}
 
-	return r.Intn(100000)
+	return int(rndm.Int64()), nil
 }
 
 //Move this to main
@@ -54,7 +57,11 @@ func (s *BoltStorage) Add(n notes.Note) error {
 	//https://github.com/mitchellh/hashstructure
 	//below in the Get/GetAll/Delete/Update, we can use the given ID, hash it with this package
 	//then call a bkt.Get() to find the hash within the key
-	n.ID = IDGenerator()
+	n.ID, err = IDGenerator()
+	if err != nil || n.ID == 0 {
+		return err
+	}
+
 	n.CreatedTime = time.Now().UTC()
 
 	h, err := hash.Hash(n.ID, hash.FormatV2, nil)
@@ -131,6 +138,10 @@ func (s *BoltStorage) GetAll() ([]notes.Note, error) {
 
 	if err != nil {
 		return nil, err
+	}
+
+	if ns == nil || len(ns) < 1 {
+		return []notes.Note{}, nil
 	}
 
 	return ns, nil
@@ -244,6 +255,8 @@ func (s *BoltStorage) ValidateUser(username, password string) error {
 }
 
 func (s *BoltStorage) StoreNewUser(signup auth.UserSignUpReq) error {
+
+	//Add bcrypt hashing before storing in plaintext
 
 	//check password matches confirmed password
 	if signup.NewPassword != signup.ConfirmPassword {

@@ -55,7 +55,7 @@ func AuthMiddleware(next http.HandlerFunc) http.HandlerFunc {
 		}
 
 		access_uuid := claims["access_uuid"].(string)
-		uid := claims["username"].(string)
+		uid := claims["user_id"].(string)
 
 		userID, ok := auth.TokenMap[access_uuid]
 		if !ok {

@@ -2,11 +2,9 @@ package main
 
 import (
 	"bytes"
-	"context"
 	"log"
 	"net/http"
 	"os"
-	"os/signal"
 	"time"
 
 	"github.com/VariableExp0rt/dddexample/adding"
@@ -44,11 +42,6 @@ func (s *Server) Run() {
 	log.Print("Server listening on http://localhost:8080.")
 }
 
-func (s *Server) Shutdown(ctx context.Context) {
-	s.Shutdown(ctx)
-	log.Print("Server shutting down.")
-}
-
 func NewLogger() *zap.SugaredLogger {
 
 	config := zap.NewProductionConfig()
@@ -84,7 +77,7 @@ func main() {
 	pflag.Parse()
 	viper.BindPFlags(pflag.CommandLine)
 
-	store, err := bolt.Open(viper.GetString("db"), 600, &bolt.Options{Timeout: 1 * time.Second})
+	store, err := bolt.Open(viper.GetString("db"), 0644, &bolt.Options{Timeout: 1 * time.Second})
 	if err != nil {
 		log.Fatalf("Unable to open database at %v. Error: %v", viper.GetString("db"), err)
 	}
@@ -107,7 +100,6 @@ func main() {
 
 	srv := Server{
 		config: &Config{},
-		logger: NewLogger(),
 		router: r,
 	}
 
@@ -119,18 +111,14 @@ func main() {
 		ath,
 	)
 
+	done := make(chan struct{})
+
 	go func() {
 		srv.Run()
+		close(done)
 	}()
 
-	c := make(chan os.Signal, 1)
-	signal.Notify(c, os.Interrupt)
-
-	<-c
-
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second*15)
-	defer cancel()
-
-	srv.Shutdown(ctx)
+	<-done
+	log.Println("Stopping and shutting down server.")
 	os.Exit(0)
 }
