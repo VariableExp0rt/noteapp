@@ -76,7 +76,9 @@ func main() {
 	pflag.String("db", "/tmp/my.db", "Supply a path for Bolt to open the database.")
 	pflag.String("port", ":8080", "Port for web server to listen on.")
 	pflag.Parse()
-	viper.BindPFlags(pflag.CommandLine)
+	if err := viper.BindPFlags(pflag.CommandLine); err != nil {
+		log.Fatalln("Failed to bind command-line flags to viper map.")
+	}
 
 	store, err := bolt.Open(viper.GetString("db"), 0644, &bolt.Options{Timeout: 1 * time.Second})
 	if err != nil {

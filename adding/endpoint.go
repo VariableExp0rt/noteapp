@@ -21,7 +21,9 @@ func MakeAddNoteEndpoint(s Service) http.HandlerFunc {
 		s.AddNote(note)
 		w.Header().Set("Content-Type", "application/json")
 
-		json.NewEncoder(w).Encode("Note added.")
-
+		if err := json.NewEncoder(w).Encode("Note added."); err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
 	}
 }

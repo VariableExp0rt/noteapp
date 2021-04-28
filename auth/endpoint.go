@@ -59,8 +59,10 @@ func MakeUserLoginEndpoint(s Service) http.HandlerFunc {
 
 		//return token to user
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(token))
-
+		if code, err := w.Write([]byte(token)); err != nil {
+			http.Error(w, err.Error(), code)
+			return
+		}
 	}
 }
 
@@ -75,13 +77,16 @@ func MakeUserSignUpEndpoint(s Service) http.HandlerFunc {
 		}
 
 		if err := s.StoreNewUser(usr); err != nil {
-			http.Error(w, "Error signing up user."+err.Error(), http.StatusInternalServerError)
+			http.Error(w, "Error signing up user. "+err.Error(), http.StatusInternalServerError)
 			return
 		}
 
 		//callback to an account page?
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("Successfully signed up new user."))
+		if code, err := w.Write([]byte("Successfully signed up new user.")); err != nil {
+			http.Error(w, err.Error(), code)
+			return
+		}
 
 	}
 }

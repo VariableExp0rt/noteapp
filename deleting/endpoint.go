@@ -26,6 +26,9 @@ func MakeDeleteNoteEndpoint(s Service) http.HandlerFunc {
 		//handle error
 
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode("Note deleted.")
+		if err := json.NewEncoder(w).Encode("Note deleted."); err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
 	}
 }

@@ -31,6 +31,9 @@ func MakeUpdateNoteEndpoint(s Service) http.HandlerFunc {
 		}
 
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode("Note updated.")
+		if err := json.NewEncoder(w).Encode("Note updated."); err != nil {
+			http.Error(w, "Note cannot be updated. "+err.Error(), http.StatusInternalServerError)
+			return
+		}
 	}
 }

@@ -35,6 +35,9 @@ func MakeGetNoteEndpoint(s Service) http.HandlerFunc {
 		}
 
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(note)
+		if err := json.NewEncoder(w).Encode(note); err != nil {
+			http.Error(w, err.Error()+". Unable to list notes.", http.StatusInternalServerError)
+			return
+		}
 	}
 }
