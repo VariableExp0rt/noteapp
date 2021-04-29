@@ -117,6 +117,9 @@ func (s *BoltStorage) GetAll() ([]notes.Note, error) {
 	err := s.DB.View(func(tx *bolt.Tx) error {
 
 		b := tx.Bucket([]byte("NOTES"))
+		if b == nil {
+			return errors.New("No notes to list, add a note to get started!")
+		}
 
 		err := b.ForEach(func(k, v []byte) error {
 			//For each note, append to list of notes above
@@ -138,10 +141,6 @@ func (s *BoltStorage) GetAll() ([]notes.Note, error) {
 
 	if err != nil {
 		return nil, err
-	}
-
-	if ns == nil || len(ns) < 1 {
-		return []notes.Note{}, nil
 	}
 
 	return ns, nil
