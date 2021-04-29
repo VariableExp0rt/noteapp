@@ -16,7 +16,10 @@ func MakeGetNotesEndpoint(s Service) http.HandlerFunc {
 			http.Error(w, "Unable to list notes.", http.StatusInternalServerError)
 			return
 		}
-		json.NewEncoder(w).Encode(notes)
+		if err := json.NewEncoder(w).Encode(notes); err != nil {
+			http.Error(w, err.Error()+". Unable to list notes.", http.StatusInternalServerError)
+			return
+		}
 	}
 }
 
@@ -36,7 +39,7 @@ func MakeGetNoteEndpoint(s Service) http.HandlerFunc {
 
 		w.Header().Set("Content-Type", "application/json")
 		if err := json.NewEncoder(w).Encode(note); err != nil {
-			http.Error(w, err.Error()+". Unable to list notes.", http.StatusInternalServerError)
+			http.Error(w, err.Error()+". Unable to list note.", http.StatusInternalServerError)
 			return
 		}
 	}
